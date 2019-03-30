@@ -1,7 +1,5 @@
 # Dataproject_MSc
 
-By Mr. tfw707, Mr. hkb519 and Mr. xnv591
-
 Dear professors, teachers and fellow students.
 
 We would like to welcome you onboard on data journey through the Danish balance of payment - item by item. 
