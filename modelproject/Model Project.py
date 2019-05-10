@@ -1,3 +1,10 @@
+#%% Change working directory from the workspace root to the ipynb file location. Turn this addition off with the DataScience.changeDirOnImportExport setting
+import os
+try:
+	os.chdir(os.path.join(os.getcwd(), 'modelproject'))
+	print(os.getcwd())
+except:
+	pass
 
 #%%
 # Importing packages
@@ -48,30 +55,32 @@ pi1 = P * q1 - TC1
 pi2 = P * q2 - TC2
 
 #%% [markdown]
-# We set $a$ and $b$ equal to some values and draw 100 exogenous quantities for firm 2 for which we will find the best response for firm 1. 
+# We set $a$ and $b$ equal to some values. 
 
 #%%
 a = 100
 c = 30
 b = 1
-N = 999
-q2_vec = np.linspace(0,99,N) 
 
 #%% [markdown]
 # We set up our profit maximization problem 
 # $$\underset{q_1}{max} \quad \pi = (a-b\cdot (q_1+q_2)) \cdot q_1 -c \cdot q_1 $$
+# and draw 1000 exogenous quantities for firm 2 for which we will find the best response for firm 1.  
 
 #%%
+N = 999
+q2_vec = np.linspace(0,99,N) 
 def pi11(q1):
     return (a-b*(q1+q2))*q1 -c * q1
+
+#%% [markdown]
+# We optimize firm 1's profit to the exogenous drawn quantity of firm 2 hence, finding the best response for firm 1 for a given quantity of firm 2. Below we apply the numerical optimizer BFGS. 
+
+#%%
 q2_try = []
 q1_BR = []
 pi1_BR = []
 
-#%% [markdown]
-# We optimize firm 1's profit to the exogenous drawn quantity of firm 2 hence, finding the best response for firm 1 for a given quantity of firm 2.
-
-#%%
 for i in q2_vec:
     q2 = i
     q1_guess = 60      
@@ -94,11 +103,9 @@ for i in range(N):
         pass
 
 #%% [markdown]
-# We gather out dataset in a DataFrame.
+# We gather out dataset in a DataFrame, as it is a rather small amout of data we are working with and hence are not constraint by time or storage.
 
 #%%
-q1_BR = np.transpose(q1_BR)
-pi1_BR = np.transpose(pi1_BR)
 df=pd.DataFrame(q2_try)
 df.columns=['q2_exo']
 df['q1_BR'] = q1_BR
@@ -108,26 +115,29 @@ df['P'] = a - df['q1_BR'] - df['q2_exo']
 df['pi2'] = np.transpose(df['P'] * df['q2_exo']) - c * df['q2_exo']
 
 df = df.round(1)
-df.tail()
+df.head(5)
 
 #%% [markdown]
-# We plot the two best responses against each other. The intersection between the curves is the Nash equilibrium of Cournot game.
+# Due to symmetry between the two firms we do not compute the best response for firm 2, but simply assume it to be equal to the best response of firm 1.
 
 #%%
 q1_exo=df['q2_exo'].copy()
 q2_BR=df['q1_BR'].copy()
 
+#%% [markdown]
+# We plot the two best responses against each other. The intersection between the curves is the Nash equilibrium of Cournot game.
 
 #%%
 plt.plot(q2_BR[0:999], q1_exo[0:999], label='BR(q2) for Firm 1')
 plt.plot(df['q2_exo'][0:999],df['q1_BR'][0:999], label='BR(q1) for Firm 2')
 plt.xlabel('q1')
 plt.ylabel('q2')
+plt.title('Best Response functions')
 plt.legend()
 plt.show()
 
 #%% [markdown]
-# We will now find the intersection i.e. the Nash equilibrium along with the profits that follow.
+# We will now find the intersection i.e. the Nash equilibrium. While we are at it, we also compute the profits that follow.
 
 #%%
 for i in range(N):
@@ -136,6 +146,7 @@ for i in range(N):
         q_cournot = df['q1_BR'][i]
     else:
         pass
+
 print(f'Profit cournot = {pi_cournot}')
 print(f'Quantity cournot = {q_cournot}')
 
@@ -149,30 +160,39 @@ print(f'Quantity cournot = {q_cournot}')
 def pi12(Q):
     return (a-Q)*Q - c * Q
 
+#%% [markdown]
+# Applying the same approch as before, we optimize the collusion problem:
 
 #%%
 objective_function = lambda Q: -pi12(Q)
 res_col = optimize.minimize(objective_function, 20, method='BFGS')
-Q_col=res_col.x[0]
-res_col
+Q_col=round(res_col.x[0],1)
+pi_joint_col=-round(res_col.fun,1)
 
+print(f'Total collusion quantity = {Q_col}')
+print(f'Total collusion profit = {pi_joint_col}')
+
+#%% [markdown]
+# We thus found the total collusion quantity and profit from the optimization.
+# In the collusion equilibrium, the firms would share this quantity and profit equally due to symmetry. 
+# Hence we find the individual quantities and profits:
 
 #%%
-pi_joint_col=-round(res_col.fun,1)
-pi_indi_col = round(pi_joint_col * 0.5,1)
 q_indi_col = round(Q_col * 0.5, 1)
-print(f'Total collusion profit = {pi_joint_col}')
-print(f'Individual collusion profit = {pi_indi_col}')
+pi_indi_col = round(pi_joint_col * 0.5,1)
+
 print(f'Individual collusion quantity = {q_indi_col}')
+print(f'Individual collusion profit = {pi_indi_col}')
 
 #%% [markdown]
 # ## Optimal deviation
 #%% [markdown]
-# If the firms decide to collude, one firm can cheat on the other and choose to deviate away from the colluding equilibrium. Instead of producing the agreed quantity, the deviating firm will choose to produce their best response quantity. 
+# If the firms decide to collude, one firm can cheat on the other and choose to deviate away from the colluding equilibrium. Instead of producing the agreed quantity, the deviating firm will choose to produce their best response quantity. Recall that we already know the best response function. 
 
 #%%
 pi_dev = round(float(df.loc[df['q2_exo']==q_indi_col, 'pi1']),1)
 pi_no_col = round(float(df.loc[df['q2_exo']==q_indi_col, 'pi2']),1)
+
 print(f'Optimal deviation profit = {pi_dev}')
 print(f'The firm who gets cheated on profit = {pi_no_col}')
 
@@ -195,16 +215,16 @@ Payoff_M
 p1_Payoff = np.array([[pi_indi_col,pi_no_col],[pi_dev,pi_cournot]])
 p2_Payoff = np.array([[pi_indi_col,pi_dev],[pi_no_col,pi_cournot]])
 rps = nash.Game(p1_Payoff, p2_Payoff)
-rps
 eqs = rps.support_enumeration()
 NE = list(eqs)
+
 print(f'With probability {NE[0][0][0]} player 1 will play Collusion') 
 print(f'With probability {NE[0][0][1]} player 1 will play Cournot')
 print(f'With probability {NE[0][1][0]} player 2 will play Collusion')
 print(f'With probability {NE[0][1][1]} player 2 will play Cournot')
 
 #%% [markdown]
-# We get the $SPNE = \{Cournot, Cournot\}$. In other words, the cartel stability game is a prisoners dilemma and the players end up in the paretodominated scenario. 
+# We get the $SPNE = \{Cournot, Cournot\}$. In other words, the cartel stability game is a prisoners dilemma and the players end up in the pareto dominated scenario. 
 #%% [markdown]
 # ## Infinetely repeated game
 #%% [markdown]
@@ -213,7 +233,7 @@ print(f'With probability {NE[0][1][1]} player 2 will play Cournot')
 # $s_{1,2}$: *In the first period play "Cartel". In every other period play* "Cartel" *if* "Cartel" *is played by 
 # the other firm in all previous periods. If* "Cartel" *is not played in every previous period play* "No Cartel".
 # 
-# We note that playing "No Cartel" is a Nash equilibrium and therefore a credible threat. Furthermore, we see that both firms can get a higher pay-off from deviating in the current period. However, the deviating firm will then get punished in all future periods. Therefore, there must exist a value of how much the firms have to value future profit compared to profit gained today in order not to deviate. Let us call this value $\delta$. $\delta$ is found by solving the equation below. 
+# We note that playing "No Cartel" is a Nash equilibrium and therefore a credible threat. Furthermore, we see that both firms can get a higher pay-off from deviating in the current period. However, the deviating firm will then get punished in all future periods. Therefore, there must exist a value of how much the firms have to value future profit compared to profit gained today in order not to deviate. Let us call this discounting value $\delta$. $\delta$ is found by solving the inequation below. 
 # 
 # $$\sum^{\infty}_{i=0} \delta^t \cdot \pi^{Col} \geq \pi^{dev} + \sum^{\infty}_{i=1} \delta^t \cdot \pi^{Cour} \Leftrightarrow$$
 # $$\frac{1}{1-\delta} \cdot \pi^{Col} \geq \pi^{dev} + \frac{\delta}{1-\delta} \cdot \pi^{Cour} $$
@@ -221,10 +241,13 @@ print(f'With probability {NE[0][1][1]} player 2 will play Cournot')
 # 1: A more realistic and intuitive way to think of the infinite game is a game that is being played over and over, but might not be infinite. However, it is played so many times that the last times it is being played do not matter for the outcome in the current period. In that way the game might not be objectively infinite, but it is infinite in the minds of the players. Alternatively, the players do not know whether this is the last time the game is being played. They play the game believing that it is not the last round, while it actually could be the last round, but they behave as they will meet again.
 
 #%%
-d = Symbol('d')
+d = sm.symbols('d')
 delta = solve(Eq(1/(1-d) * pi_indi_col, pi_dev + d/(1-d) * pi_cournot),d)
-print(f'The firms will not deviate as long as delta is larger than or equal {round(delta[0],2)}. Delta can be interpreted as how much the firms value profits gained tomorrow compared to those gained today and in that sense, the firms have to value profits gained tommorow {round(delta[0],2)} as much as profits gained today in order to sustain collusion.')
+print(f'delta = {round(delta[0],2)}')
+print(f'The firms will not deviate as long as delta is larger than or equal {round(delta[0],2)}')
 
+#%% [markdown]
+# Delta can be interpreted as how much the firms value profits gained tomorrow compared to those gained today and in that sense, the firms have to value profits gained tommorow $\delta$ times as much as profits gained today in order to sustain collusion.
 #%% [markdown]
 # We will now solve the whole game in a single function such that it is easier to solve the game with different values og $a$, $b$ and $c$
 
@@ -294,11 +317,15 @@ def combined_function(a,c,b):
 #infinitely repeated game
         d = Symbol('d')
         delta = solve(Eq(1/(1-d) * pi_indi_col, pi_dev + d/(1-d) * pi_cournot),d)
-        print(f'a/c = {a/c}, delta  = {round(delta[0],2)}, profit_cournot = {pi_cournot}, profit_collusion = {pi_indi_col}, profit_deviation = {pi_dev}, profit_cheated_on = {pi_no_col}')
+        print(f'a/c = {a/c}, delta  = {round(delta[0],2)}, profit cournot = {pi_cournot}, profit collusion = {pi_indi_col}, profit deviation = {pi_dev}, profit cheated on = {pi_no_col}')
 
 
 #%%
-outcome = (combined_function(55,50,1), combined_function(200,100,1), combined_function(300,100,1), combined_function(200,50,1), combined_function(250,10,1))
+outcome = (combined_function(55,50,1), 
+           combined_function(200,100,1), 
+           combined_function(300,100,1), 
+           combined_function(200,50,1), 
+           combined_function(250,10,1))
 
 #%% [markdown]
 # We see that it is no coincidence that we ended up with delta value of 0.53 before. It is a general result of Industrial Organization that with linear demand and constant marginal cost, firms must value profit gained in the future at least 0.53 as much as profit gained today in order to sustain collusion. 
