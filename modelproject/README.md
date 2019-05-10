@@ -1,10 +1,12 @@
 Dear professors, teachers and fellow students.
 
-We would like to welcome you onboard this data journey through the Danish balance of payment - item by item.
+The aim with this code, is to create a economic model describing the game between to companies by using Cournot Competition theory, which is known from Industrial Organization and Microeconomics 3 courses.
 
-This project aims to fetch, sort, adapt, visualize and describe data from Statistics Denmark using Python 3 language. Our challenges and results are presented in jupyter lab notebook where we seek to take our readers in hand step by step.
+Cournot competiion is an economic model used to describe the optimal amount of output to produce for two companies competing agaist each other. The decide the amout of production independently of each other and at the same time. 
 
-We hope you will enjoy the ride.
+After findig the cournot production level and profits we investigate how collusion and diverting from a collusion will impact on the these factors. 
+
+The code is presented in Python 3 language by using Jupyter lab. Within the code we will try to the the reader in hand - step by step.  
 
 Happy reading :)
 
